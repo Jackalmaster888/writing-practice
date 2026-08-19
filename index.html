@@ -43,7 +43,7 @@
             flex-wrap: wrap;
             width: 100%;
             max-width: 700px;
-            min-height: 150px; /* 避免載入時畫面跳動 */
+            min-height: 150px;
         }
 
         /* 單個字格的設計 */
@@ -186,8 +186,8 @@
         目前進度：<span id="progress"></span>
     </div>
 
-    <!-- 教師面板 -->
-    <div class="teacher-panel">
+    <!-- 教師面板 (加入 id 供 JavaScript 抓取) -->
+    <div class="teacher-panel" id="teacherPanel">
         <h3>👨‍🏫 教師設定區</h3>
         
         <p>模式一：從 Google Sheets 自動抓取 (推薦)</p>
@@ -211,6 +211,7 @@
         const customWordsInput = document.getElementById('customWords');
         const sheetUrlInput = document.getElementById('sheetUrl');
         const loadingMsg = document.getElementById('loadingMsg');
+        const teacherPanel = document.getElementById('teacherPanel'); // 抓取教師面板
 
         // --- 初始化程式 ---
         async function initApp() {
@@ -218,8 +219,13 @@
             const sheetIdParam = urlParams.get('sheetId');
             const wordsParam = urlParams.get('words');
 
+            // 判斷是否為學生開啟的分享連結：如果有參數，就隱藏教師設定區
+            if (sheetIdParam || wordsParam) {
+                teacherPanel.style.display = 'none';
+            }
+
             if (sheetIdParam) {
-                // 如果網址帶有雲端表單 ID，優先載入雲端資料
+                // 優先載入雲端資料
                 await fetchSheetData(sheetIdParam);
             } else {
                 // 否則使用手動設定的詞語
@@ -235,7 +241,6 @@
             loadingMsg.style.display = 'block';
             wordContainer.style.display = 'none';
             
-            // 透過匯出 CSV 的方式獲取公開表單資料
             const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
             
             try {
@@ -244,18 +249,14 @@
                 
                 const csvText = await response.text();
                 
-                // 解析 CSV（將每一行視為一個詞語）
                 const rows = csvText.replace(/\r/g, '').split('\n').filter(r => r.trim().length > 0);
-                
-                // 取每行的第一欄 (如果有逗號，取第一個)
                 const firstColumnWords = rows.map(row => row.split(',')[0]);
                 
                 parseVocab(firstColumnWords.join(','));
-                
                 sheetUrlInput.value = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
             } catch (error) {
                 alert(`連線失敗：${error.message}`);
-                parseVocab("載入,失敗"); // 備用詞語
+                parseVocab("載入,失敗"); 
             } finally {
                 loadingMsg.style.display = 'none';
                 wordContainer.style.display = 'flex';
@@ -369,7 +370,7 @@
             }
             
             const sheetId = match[1];
-            await fetchSheetData(sheetId); // 試著抓取一次以驗證權限
+            await fetchSheetData(sheetId);
             
             if(vocabList.length > 0 && vocabList[0] !== "載入") {
                 const baseUrl = window.location.href.split('?')[0];
