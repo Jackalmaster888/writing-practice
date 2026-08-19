@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>詞語書寫練習 (雲端題庫版)</title>
+    <style>
+        :root {
+            --primary: #4a69bd;
+            --bg-color: #f1f2f6;
+            --grid-color: #ff9ff3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Microsoft JhengHei';
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .instruction {
+            color: #57606f;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        /* 詞語容器 */
+        .word-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 700px;
+            min-height: 150px; /* 避免載入時畫面跳動 */
+        }
+
+        /* 單個字格的設計 */
+        .canvas-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            background-color: white;
+            border: 3px solid #2f3542;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            overflow: hidden;
+            flex-shrink: 0;
+            background-image: 
+                linear-gradient(to right, transparent 49%, var(--grid-color) 49%, var(--grid-color) 51%, transparent 51%),
+                linear-gradient(to bottom, transparent 49%, var(--grid-color) 49%, var(--grid-color) 51%, transparent 51%),
+                linear-gradient(45deg, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
+                linear-gradient(-45deg, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%);
+        }
+
+        .bg-char {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            font-family: 'Kaiti', 'STKaiti', 'KaiTi_GB2312', serif;
+            color: rgba(164, 176, 190, 0.3);
+            z-index: 1;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-clear { background-color: #ff6b81; }
+        .btn-clear:hover { background-color: #ff4757; }
+        .btn-next { background-color: #2ed573; }
+        .btn-next:hover { background-color: #1e8449; }
+        
+        .vocab-list {
+            margin-top: 15px;
+            font-size: 1.2em;
+            color: #2f3542;
+            font-weight: bold;
+        }
+
+        /* 教師設定區 */
+        .teacher-panel {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #dfe4ea;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            border: 2px dashed #747d8c;
+        }
+
+        .teacher-panel h3 {
+            margin-top: 0;
+            color: #2f3542;
+            font-size: 1.1em;
+            border-bottom: 2px solid #a4b0be;
+            padding-bottom: 10px;
+        }
+
+        .teacher-panel p { margin: 15px 0 5px 0; font-weight: bold; font-size: 0.9em; color: #57606f; }
+
+        .teacher-panel input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #a4b0be;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .btn-share { background-color: #3742fa; width: 100%; margin-bottom: 10px;}
+        .btn-share:hover { background-color: #5352ed; }
+        .btn-sheet { background-color: #009432; width: 100%; }
+        .btn-sheet:hover { background-color: #00b33c; }
+
+        hr { border: 0; height: 1px; background: #ced6e0; margin: 20px 0; }
+        
+        #loadingMsg { display: none; color: #e1b12c; font-weight: bold; margin-bottom: 15px;}
+
+    </style>
+</head>
+<body>
+
+    <h1>✍️ 詞語書寫練習</h1>
+    <div class="instruction">請沿著灰色的底字，在米字格內練習書寫。</div>
+    
+    <div id="loadingMsg">🔄 正在從 Google 試算表載入題庫...</div>
+
+    <!-- 畫布區 -->
+    <div class="word-container" id="word-container"></div>
+
+    <div class="controls">
+        <button class="btn-clear" onclick="clearAllCanvas()">重新書寫 🗑️</button>
+        <button class="btn-next" onclick="nextWord()">下一個詞語 ➡️</button>
+    </div>
+
+    <div class="vocab-list">
+        目前進度：<span id="progress"></span>
+    </div>
+
+    <!-- 教師面板 -->
+    <div class="teacher-panel">
+        <h3>👨‍🏫 教師設定區</h3>
+        
+        <p>模式一：從 Google Sheets 自動抓取 (推薦)</p>
+        <input type="text" id="sheetUrl" placeholder="貼上公開的 Google 試算表連結">
+        <button class="btn-sheet" onclick="generateSheetLink()">🔗 產生「雲端連動」分享連結</button>
+        
+        <hr>
+        
+        <p>模式二：手動輸入固定詞語</p>
+        <input type="text" id="customWords" placeholder="例如: 蘋果, 香蕉" value="圖書館, 責任, 雲端題庫">
+        <button class="btn-share" onclick="generateStaticLink()">🔗 產生「固定詞語」分享連結</button>
+    </div>
+
+    <script>
+        let vocabList = [];
+        let currentIndex = 0;
+        let activeContexts = [];
+
+        const wordContainer = document.getElementById('word-container');
+        const progressText = document.getElementById('progress');
+        const customWordsInput = document.getElementById('customWords');
+        const sheetUrlInput = document.getElementById('sheetUrl');
+        const loadingMsg = document.getElementById('loadingMsg');
+
+        // --- 初始化程式 ---
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sheetIdParam = urlParams.get('sheetId');
+            const wordsParam = urlParams.get('words');
+
+            if (sheetIdParam) {
+                // 如果網址帶有雲端表單 ID，優先載入雲端資料
+                await fetchSheetData(sheetIdParam);
+            } else {
+                // 否則使用手動設定的詞語
+                let inputStr = wordsParam ? wordsParam : customWordsInput.value;
+                if (wordsParam) customWordsInput.value = wordsParam;
+                parseVocab(inputStr);
+                updateDisplay();
+            }
+        }
+
+        // --- 核心：從 Google Sheets 獲取資料 ---
+        async function fetchSheetData(sheetId) {
+            loadingMsg.style.display = 'block';
+            wordContainer.style.display = 'none';
+            
+            // 透過匯出 CSV 的方式獲取公開表單資料
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+            
+            try {
+                const response = await fetch(csvUrl);
+                if (!response.ok) throw new Error('無法讀取表單，請確認該試算表是否已設為「知道連結的使用者皆可查看」。');
+                
+                const csvText = await response.text();
+                
+                // 解析 CSV（將每一行視為一個詞語）
+                const rows = csvText.replace(/\r/g, '').split('\n').filter(r => r.trim().length > 0);
+                
+                // 取每行的第一欄 (如果有逗號，取第一個)
+                const firstColumnWords = rows.map(row => row.split(',')[0]);
+                
+                parseVocab(firstColumnWords.join(','));
+                
+                sheetUrlInput.value = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+            } catch (error) {
+                alert(`連線失敗：${error.message}`);
+                parseVocab("載入,失敗"); // 備用詞語
+            } finally {
+                loadingMsg.style.display = 'none';
+                wordContainer.style.display = 'flex';
+                updateDisplay();
+            }
+        }
+
+        // --- 解析與更新畫面 ---
+        function parseVocab(str) {
+            let rawWords = str.split(/[\s,，、]+/);
+            vocabList = rawWords.map(w => w.trim())
+                                .filter(w => w.length > 0 && w.length <= 4);
+            
+            if (vocabList.length === 0) vocabList = ["詞語", "測試"];
+            currentIndex = 0;
+        }
+
+        function updateDisplay() {
+            wordContainer.innerHTML = '';
+            activeContexts = [];
+            const currentWord = vocabList[currentIndex];
+            
+            for (let i = 0; i < currentWord.length; i++) {
+                const char = currentWord[i];
+                const div = document.createElement('div');
+                div.className = 'canvas-container';
+                
+                const bg = document.createElement('div');
+                bg.className = 'bg-char';
+                bg.innerText = char;
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                
+                div.appendChild(bg);
+                div.appendChild(canvas);
+                wordContainer.appendChild(div);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 14;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#2d3436';
+                activeContexts.push(ctx);
+                
+                bindCanvasEvents(canvas, ctx);
+            }
+            progressText.innerText = `${currentIndex + 1} / ${vocabList.length}`;
+        }
+
+        // --- 繪畫事件綁定 ---
+        function bindCanvasEvents(canvas, ctx) {
+            let isDrawing = false;
+            let lastX = 0, lastY = 0;
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+            }
+
+            function start(e) { e.preventDefault(); isDrawing = true; const pos = getPos(e); [lastX, lastY] = [pos.x, pos.y]; }
+            function move(e) { e.preventDefault(); if (!isDrawing) return; const pos = getPos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y); ctx.stroke(); [lastX, lastY] = [pos.x, pos.y]; }
+            function stop(e) { if (e) e.preventDefault(); isDrawing = false; ctx.beginPath(); }
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseup', stop);
+            canvas.addEventListener('mouseout', stop);
+            canvas.addEventListener('touchstart', start, { passive: false });
+            canvas.addEventListener('touchmove', move, { passive: false });
+            canvas.addEventListener('touchend', stop);
+        }
+
+        function clearAllCanvas() {
+            activeContexts.forEach(ctx => ctx.clearRect(0, 0, 300, 300));
+        }
+
+        function nextWord() {
+            currentIndex = (currentIndex + 1) % vocabList.length;
+            updateDisplay();
+        }
+
+        // --- 產生連結邏輯 ---
+        function copyUrlToClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`✅ 專屬連結已複製！\n你可以將此連結直接貼給學生！\n\n${url}`);
+            }).catch(() => alert(`請手動複製以下連結貼給學生：\n\n${url}`));
+        }
+
+        function generateStaticLink() {
+            const inputStr = customWordsInput.value;
+            parseVocab(inputStr);
+            updateDisplay();
+            const validWordsStr = vocabList.join(',');
+            customWordsInput.value = validWordsStr;
+            const baseUrl = window.location.href.split('?')[0]; 
+            copyUrlToClipboard(`${baseUrl}?words=${encodeURIComponent(validWordsStr)}`);
+        }
+
+        async function generateSheetLink() {
+            const urlInput = sheetUrlInput.value;
+            const match = urlInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!match) {
+                alert("❌ 無法識別試算表 ID！\n請確保你貼上的是完整的 Google 試算表連結。");
+                return;
+            }
+            
+            const sheetId = match[1];
+            await fetchSheetData(sheetId); // 試著抓取一次以驗證權限
+            
+            if(vocabList.length > 0 && vocabList[0] !== "載入") {
+                const baseUrl = window.location.href.split('?')[0];
+                copyUrlToClipboard(`${baseUrl}?sheetId=${sheetId}`);
+            }
+        }
+
+        // 啟動程式
+        initApp();
+    </script>
+</body>
+</html>
