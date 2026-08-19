@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>詞語書寫練習 (雲端題庫版)</title>
+    <title>詞語書寫練習 (智慧放大版)</title>
     <style>
         :root {
             --primary: #4a69bd;
@@ -15,51 +15,74 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Microsoft JhengHei';
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
+            padding: 2vh 4vw;
             display: flex;
             flex-direction: column;
             align-items: center;
-            touch-action: none;
+            touch-action: none; /* 防止書寫時螢幕滑動 */
         }
 
         h1 {
             color: var(--primary);
             margin-bottom: 5px;
             text-align: center;
+            font-size: clamp(1.5rem, 5vw, 2.5rem); /* 標題也隨螢幕縮放 */
         }
 
         .instruction {
             color: #57606f;
             margin-bottom: 20px;
-            font-size: 1.1em;
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
             text-align: center;
         }
 
-        /* 詞語容器 */
+        /* 👑 智慧版面配置 (CSS Grid) */
         .word-container {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
+            display: grid;
+            gap: 3vw;
             width: 100%;
-            max-width: 700px;
-            min-height: 150px;
+            max-width: 900px;
+            margin: 0 auto;
+            justify-items: center;
         }
 
-        /* 單個字格的設計 */
+        /* 根據字數動態調整欄數 */
+        .word-container.chars-1 { grid-template-columns: 1fr; }
+        .word-container.chars-2 { grid-template-columns: repeat(2, 1fr); }
+        .word-container.chars-3 { grid-template-columns: repeat(3, 1fr); }
+        .word-container.chars-4 { grid-template-columns: repeat(4, 1fr); }
+
+        /* 📱 手機與平板的響應式折行設定 */
+        @media (max-width: 800px) {
+            .word-container.chars-4, .word-container.chars-3 {
+                grid-template-columns: repeat(2, 1fr); /* 4字或3字在小螢幕變 2x2 */
+            }
+        }
+        @media (max-width: 500px) {
+            .word-container.chars-2 {
+                grid-template-columns: 1fr; /* 2個字在手機上變成上下排列，格子最大化 */
+            }
+        }
+
+        /* 單個字格的設計：自動填滿空間並保持正方形 */
         .canvas-container {
             position: relative;
-            width: 140px;
-            height: 140px;
+            width: 100%;
+            max-width: 400px; /* 防止在極大螢幕上過於誇張 */
+            aspect-ratio: 1 / 1; /* 永遠保持完美的正方形 */
             background-color: white;
-            border: 3px solid #2f3542;
+            border: clamp(2px, 0.5vw, 4px) solid #2f3542;
             border-radius: 10px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             overflow: hidden;
-            flex-shrink: 0;
+            
+            /* 支援容器查詢，讓裡面的字體依據格子大小自動縮放 */
+            container-type: inline-size; 
+
+            /* 米字格背景 */
             background-image: 
-                linear-gradient(to right, transparent 49%, var(--grid-color) 49%, var(--grid-color) 51%, transparent 51%),
-                linear-gradient(to bottom, transparent 49%, var(--grid-color) 49%, var(--grid-color) 51%, transparent 51%),
+                linear-gradient(to right, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
+                linear-gradient(to bottom, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
                 linear-gradient(45deg, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
                 linear-gradient(-45deg, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%);
         }
@@ -73,12 +96,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 100px;
             font-family: 'Kaiti', 'STKaiti', 'KaiTi_GB2312', serif;
             color: rgba(164, 176, 190, 0.3);
             z-index: 1;
             pointer-events: none;
             user-select: none;
+            
+            /* 字體大小為格子寬度的 75%，完美置中 */
+            font-size: 15vw; /* 舊瀏覽器備案 */
+            font-size: 75cqw; 
         }
 
         canvas {
@@ -97,6 +123,7 @@
             gap: 15px;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
         }
 
         button {
@@ -136,33 +163,14 @@
             border: 2px dashed #747d8c;
         }
 
-        .teacher-panel h3 {
-            margin-top: 0;
-            color: #2f3542;
-            font-size: 1.1em;
-            border-bottom: 2px solid #a4b0be;
-            padding-bottom: 10px;
-        }
-
+        .teacher-panel h3 { margin-top: 0; color: #2f3542; border-bottom: 2px solid #a4b0be; padding-bottom: 10px; }
         .teacher-panel p { margin: 15px 0 5px 0; font-weight: bold; font-size: 0.9em; color: #57606f; }
-
-        .teacher-panel input {
-            width: 100%;
-            padding: 10px;
-            font-size: 1em;
-            border: 1px solid #a4b0be;
-            border-radius: 5px;
-            box-sizing: border-box;
-            margin-bottom: 10px;
-        }
-
+        .teacher-panel input { width: 100%; padding: 10px; font-size: 1em; border: 1px solid #a4b0be; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px; }
         .btn-share { background-color: #3742fa; width: 100%; margin-bottom: 10px;}
         .btn-share:hover { background-color: #5352ed; }
         .btn-sheet { background-color: #009432; width: 100%; }
         .btn-sheet:hover { background-color: #00b33c; }
-
         hr { border: 0; height: 1px; background: #ced6e0; margin: 20px 0; }
-        
         #loadingMsg { display: none; color: #e1b12c; font-weight: bold; margin-bottom: 15px;}
 
     </style>
@@ -170,11 +178,11 @@
 <body>
 
     <h1>✍️ 詞語書寫練習</h1>
-    <div class="instruction">請沿著灰色的底字，在米字格內練習書寫。</div>
+    <div class="instruction" id="instruction-text">請沿著灰色的底字，在方格內練習書寫。</div>
     
-    <div id="loadingMsg">🔄 正在從 Google 試算表載入題庫...</div>
+    <div id="loadingMsg">🔄 正在載入題庫，請稍候...</div>
 
-    <!-- 畫布區 -->
+    <!-- 畫布區 (將依據字數自動調整 class) -->
     <div class="word-container" id="word-container"></div>
 
     <div class="controls">
@@ -186,16 +194,13 @@
         目前進度：<span id="progress"></span>
     </div>
 
-    <!-- 教師面板 (加入 id 供 JavaScript 抓取) -->
+    <!-- 教師面板 -->
     <div class="teacher-panel" id="teacherPanel">
         <h3>👨‍🏫 教師設定區</h3>
-        
         <p>模式一：從 Google Sheets 自動抓取 (推薦)</p>
         <input type="text" id="sheetUrl" placeholder="貼上公開的 Google 試算表連結">
         <button class="btn-sheet" onclick="generateSheetLink()">🔗 產生「雲端連動」分享連結</button>
-        
         <hr>
-        
         <p>模式二：手動輸入固定詞語</p>
         <input type="text" id="customWords" placeholder="例如: 蘋果, 香蕉" value="圖書館, 責任, 雲端題庫">
         <button class="btn-share" onclick="generateStaticLink()">🔗 產生「固定詞語」分享連結</button>
@@ -211,7 +216,8 @@
         const customWordsInput = document.getElementById('customWords');
         const sheetUrlInput = document.getElementById('sheetUrl');
         const loadingMsg = document.getElementById('loadingMsg');
-        const teacherPanel = document.getElementById('teacherPanel'); // 抓取教師面板
+        const teacherPanel = document.getElementById('teacherPanel'); 
+        const instructionText = document.getElementById('instruction-text');
 
         // --- 初始化程式 ---
         async function initApp() {
@@ -219,47 +225,43 @@
             const sheetIdParam = urlParams.get('sheetId');
             const wordsParam = urlParams.get('words');
 
-            // 判斷是否為學生開啟的分享連結：如果有參數，就隱藏教師設定區
+            // 🌟 徹底刪除教師面板邏輯 🌟
             if (sheetIdParam || wordsParam) {
-                teacherPanel.style.display = 'none';
+                if (teacherPanel) {
+                    teacherPanel.remove(); // 直接從 HTML DOM 樹中刪除該區塊，學生絕對看不到
+                }
             }
 
             if (sheetIdParam) {
-                // 優先載入雲端資料
                 await fetchSheetData(sheetIdParam);
             } else {
-                // 否則使用手動設定的詞語
                 let inputStr = wordsParam ? wordsParam : customWordsInput.value;
-                if (wordsParam) customWordsInput.value = wordsParam;
+                if (wordsParam && customWordsInput) customWordsInput.value = wordsParam;
                 parseVocab(inputStr);
                 updateDisplay();
             }
         }
 
-        // --- 核心：從 Google Sheets 獲取資料 ---
+        // --- 從 Google Sheets 獲取資料 ---
         async function fetchSheetData(sheetId) {
             loadingMsg.style.display = 'block';
             wordContainer.style.display = 'none';
-            
             const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
             
             try {
                 const response = await fetch(csvUrl);
-                if (!response.ok) throw new Error('無法讀取表單，請確認該試算表是否已設為「知道連結的使用者皆可查看」。');
-                
+                if (!response.ok) throw new Error('無法讀取');
                 const csvText = await response.text();
-                
                 const rows = csvText.replace(/\r/g, '').split('\n').filter(r => r.trim().length > 0);
                 const firstColumnWords = rows.map(row => row.split(',')[0]);
-                
                 parseVocab(firstColumnWords.join(','));
-                sheetUrlInput.value = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+                if (sheetUrlInput) sheetUrlInput.value = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
             } catch (error) {
-                alert(`連線失敗：${error.message}`);
+                alert(`連線失敗，請確認表單是否公開。`);
                 parseVocab("載入,失敗"); 
             } finally {
                 loadingMsg.style.display = 'none';
-                wordContainer.style.display = 'flex';
+                wordContainer.style.display = 'grid'; // 恢復網格顯示
                 updateDisplay();
             }
         }
@@ -269,8 +271,7 @@
             let rawWords = str.split(/[\s,，、]+/);
             vocabList = rawWords.map(w => w.trim())
                                 .filter(w => w.length > 0 && w.length <= 4);
-            
-            if (vocabList.length === 0) vocabList = ["詞語", "測試"];
+            if (vocabList.length === 0) vocabList = ["詞語"];
             currentIndex = 0;
         }
 
@@ -278,6 +279,9 @@
             wordContainer.innerHTML = '';
             activeContexts = [];
             const currentWord = vocabList[currentIndex];
+            
+            // 動態套用字數 CSS Class 以實現響應式排版
+            wordContainer.className = `word-container chars-${currentWord.length}`;
             
             for (let i = 0; i < currentWord.length; i++) {
                 const char = currentWord[i];
@@ -288,16 +292,17 @@
                 bg.className = 'bg-char';
                 bg.innerText = char;
                 
+                // 將內部畫布解析度提升至 600x600，確保方格放大後線條不會起毛邊
                 const canvas = document.createElement('canvas');
-                canvas.width = 300;
-                canvas.height = 300;
+                canvas.width = 600; 
+                canvas.height = 600;
                 
                 div.appendChild(bg);
                 div.appendChild(canvas);
                 wordContainer.appendChild(div);
                 
                 const ctx = canvas.getContext('2d');
-                ctx.lineWidth = 14;
+                ctx.lineWidth = 26; // 畫筆加粗以匹配高解析度
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = '#2d3436';
@@ -308,7 +313,7 @@
             progressText.innerText = `${currentIndex + 1} / ${vocabList.length}`;
         }
 
-        // --- 繪畫事件綁定 ---
+        // --- 繪畫事件綁定 (完美支援縮放比例) ---
         function bindCanvasEvents(canvas, ctx) {
             let isDrawing = false;
             let lastX = 0, lastY = 0;
@@ -317,6 +322,7 @@
                 const rect = canvas.getBoundingClientRect();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                // 自動換算實際點擊位置與內部 600px 畫布的比例
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
                 return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
@@ -336,7 +342,7 @@
         }
 
         function clearAllCanvas() {
-            activeContexts.forEach(ctx => ctx.clearRect(0, 0, 300, 300));
+            activeContexts.forEach(ctx => ctx.clearRect(0, 0, 600, 600));
         }
 
         function nextWord() {
@@ -347,7 +353,7 @@
         // --- 產生連結邏輯 ---
         function copyUrlToClipboard(url) {
             navigator.clipboard.writeText(url).then(() => {
-                alert(`✅ 專屬連結已複製！\n你可以將此連結直接貼給學生！\n\n${url}`);
+                alert(`✅ 專屬連結已複製！\n\n此連結學生點開後，會自動隱藏設定區，僅提供大寫字格！\n\n${url}`);
             }).catch(() => alert(`請手動複製以下連結貼給學生：\n\n${url}`));
         }
 
@@ -364,21 +370,15 @@
         async function generateSheetLink() {
             const urlInput = sheetUrlInput.value;
             const match = urlInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
-            if (!match) {
-                alert("❌ 無法識別試算表 ID！\n請確保你貼上的是完整的 Google 試算表連結。");
-                return;
-            }
-            
+            if (!match) { alert("❌ 無法識別 ID！"); return; }
             const sheetId = match[1];
             await fetchSheetData(sheetId);
-            
             if(vocabList.length > 0 && vocabList[0] !== "載入") {
                 const baseUrl = window.location.href.split('?')[0];
                 copyUrlToClipboard(`${baseUrl}?sheetId=${sheetId}`);
             }
         }
 
-        // 啟動程式
         initApp();
     </script>
 </body>
