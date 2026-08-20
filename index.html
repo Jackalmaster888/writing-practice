@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>詞語書寫練習 (智慧放大版)</title>
+    <title>詞語書寫練習 (純淨版)</title>
     <style>
         :root {
             --primary: #4a69bd;
@@ -19,19 +19,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            touch-action: none; /* 防止書寫時螢幕滑動 */
+            touch-action: none;
         }
 
         h1 {
             color: var(--primary);
             margin-bottom: 5px;
             text-align: center;
-            font-size: clamp(1.5rem, 5vw, 2.5rem); /* 標題也隨螢幕縮放 */
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
         }
 
         .instruction {
             color: #57606f;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-size: clamp(1rem, 3.5vw, 1.2rem);
             text-align: center;
         }
@@ -42,44 +42,34 @@
             gap: 3vw;
             width: 100%;
             max-width: 900px;
-            margin: 0 auto;
+            margin: 10px auto 20px auto;
             justify-items: center;
         }
 
-        /* 根據字數動態調整欄數 */
         .word-container.chars-1 { grid-template-columns: 1fr; }
         .word-container.chars-2 { grid-template-columns: repeat(2, 1fr); }
         .word-container.chars-3 { grid-template-columns: repeat(3, 1fr); }
         .word-container.chars-4 { grid-template-columns: repeat(4, 1fr); }
 
-        /* 📱 手機與平板的響應式折行設定 */
         @media (max-width: 800px) {
-            .word-container.chars-4, .word-container.chars-3 {
-                grid-template-columns: repeat(2, 1fr); /* 4字或3字在小螢幕變 2x2 */
-            }
+            .word-container.chars-4, .word-container.chars-3 { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 500px) {
-            .word-container.chars-2 {
-                grid-template-columns: 1fr; /* 2個字在手機上變成上下排列，格子最大化 */
-            }
+            .word-container.chars-2 { grid-template-columns: 1fr; }
         }
 
-        /* 單個字格的設計：自動填滿空間並保持正方形 */
+        /* 單個字格的設計 */
         .canvas-container {
             position: relative;
             width: 100%;
-            max-width: 400px; /* 防止在極大螢幕上過於誇張 */
-            aspect-ratio: 1 / 1; /* 永遠保持完美的正方形 */
+            max-width: 400px; 
+            aspect-ratio: 1 / 1; 
             background-color: white;
             border: clamp(2px, 0.5vw, 4px) solid #2f3542;
             border-radius: 10px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             overflow: hidden;
-            
-            /* 支援容器查詢，讓裡面的字體依據格子大小自動縮放 */
             container-type: inline-size; 
-
-            /* 米字格背景 */
             background-image: 
                 linear-gradient(to right, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
                 linear-gradient(to bottom, transparent 49.5%, var(--grid-color) 49.5%, var(--grid-color) 50.5%, transparent 50.5%),
@@ -101,9 +91,7 @@
             z-index: 1;
             pointer-events: none;
             user-select: none;
-            
-            /* 字體大小為格子寬度的 75%，完美置中 */
-            font-size: 15vw; /* 舊瀏覽器備案 */
+            font-size: 15vw; 
             font-size: 75cqw; 
         }
 
@@ -117,17 +105,18 @@
             cursor: crosshair;
         }
 
+        /* --- 操作按鈕區塊 --- */
         .controls {
-            margin-top: 25px;
+            margin-top: 10px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
             width: 100%;
         }
 
         button {
-            padding: 12px 25px;
+            padding: 12px 20px;
             font-size: 1.1em;
             border: none;
             border-radius: 8px;
@@ -139,17 +128,14 @@
         }
 
         button:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-prev { background-color: #0984e3; }
+        .btn-prev:hover { background-color: #74b9ff; }
         .btn-clear { background-color: #ff6b81; }
         .btn-clear:hover { background-color: #ff4757; }
         .btn-next { background-color: #2ed573; }
         .btn-next:hover { background-color: #1e8449; }
         
-        .vocab-list {
-            margin-top: 15px;
-            font-size: 1.2em;
-            color: #2f3542;
-            font-weight: bold;
-        }
+        .vocab-list { margin-top: 15px; font-size: 1.2em; color: #2f3542; font-weight: bold; }
 
         /* 教師設定區 */
         .teacher-panel {
@@ -182,12 +168,14 @@
     
     <div id="loadingMsg">🔄 正在載入題庫，請稍候...</div>
 
-    <!-- 畫布區 (將依據字數自動調整 class) -->
+    <!-- 畫布區 -->
     <div class="word-container" id="word-container"></div>
 
+    <!-- 操作控制區 -->
     <div class="controls">
+        <button class="btn-prev" onclick="prevWord()">⬅️ 上一個</button>
         <button class="btn-clear" onclick="clearAllCanvas()">重新書寫 🗑️</button>
-        <button class="btn-next" onclick="nextWord()">下一個詞語 ➡️</button>
+        <button class="btn-next" onclick="nextWord()">下一個 ➡️</button>
     </div>
 
     <div class="vocab-list">
@@ -217,19 +205,14 @@
         const sheetUrlInput = document.getElementById('sheetUrl');
         const loadingMsg = document.getElementById('loadingMsg');
         const teacherPanel = document.getElementById('teacherPanel'); 
-        const instructionText = document.getElementById('instruction-text');
 
-        // --- 初始化程式 ---
         async function initApp() {
             const urlParams = new URLSearchParams(window.location.search);
             const sheetIdParam = urlParams.get('sheetId');
             const wordsParam = urlParams.get('words');
 
-            // 🌟 徹底刪除教師面板邏輯 🌟
             if (sheetIdParam || wordsParam) {
-                if (teacherPanel) {
-                    teacherPanel.remove(); // 直接從 HTML DOM 樹中刪除該區塊，學生絕對看不到
-                }
+                if (teacherPanel) teacherPanel.remove(); 
             }
 
             if (sheetIdParam) {
@@ -242,7 +225,6 @@
             }
         }
 
-        // --- 從 Google Sheets 獲取資料 ---
         async function fetchSheetData(sheetId) {
             loadingMsg.style.display = 'block';
             wordContainer.style.display = 'none';
@@ -261,16 +243,14 @@
                 parseVocab("載入,失敗"); 
             } finally {
                 loadingMsg.style.display = 'none';
-                wordContainer.style.display = 'grid'; // 恢復網格顯示
+                wordContainer.style.display = 'grid'; 
                 updateDisplay();
             }
         }
 
-        // --- 解析與更新畫面 ---
         function parseVocab(str) {
             let rawWords = str.split(/[\s,，、]+/);
-            vocabList = rawWords.map(w => w.trim())
-                                .filter(w => w.length > 0 && w.length <= 4);
+            vocabList = rawWords.map(w => w.trim()).filter(w => w.length > 0 && w.length <= 4);
             if (vocabList.length === 0) vocabList = ["詞語"];
             currentIndex = 0;
         }
@@ -280,7 +260,6 @@
             activeContexts = [];
             const currentWord = vocabList[currentIndex];
             
-            // 動態套用字數 CSS Class 以實現響應式排版
             wordContainer.className = `word-container chars-${currentWord.length}`;
             
             for (let i = 0; i < currentWord.length; i++) {
@@ -292,7 +271,6 @@
                 bg.className = 'bg-char';
                 bg.innerText = char;
                 
-                // 將內部畫布解析度提升至 600x600，確保方格放大後線條不會起毛邊
                 const canvas = document.createElement('canvas');
                 canvas.width = 600; 
                 canvas.height = 600;
@@ -302,7 +280,7 @@
                 wordContainer.appendChild(div);
                 
                 const ctx = canvas.getContext('2d');
-                ctx.lineWidth = 26; // 畫筆加粗以匹配高解析度
+                ctx.lineWidth = 26; 
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = '#2d3436';
@@ -313,7 +291,6 @@
             progressText.innerText = `${currentIndex + 1} / ${vocabList.length}`;
         }
 
-        // --- 繪畫事件綁定 (完美支援縮放比例) ---
         function bindCanvasEvents(canvas, ctx) {
             let isDrawing = false;
             let lastX = 0, lastY = 0;
@@ -322,7 +299,6 @@
                 const rect = canvas.getBoundingClientRect();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                // 自動換算實際點擊位置與內部 600px 畫布的比例
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
                 return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
@@ -341,8 +317,11 @@
             canvas.addEventListener('touchend', stop);
         }
 
-        function clearAllCanvas() {
-            activeContexts.forEach(ctx => ctx.clearRect(0, 0, 600, 600));
+        function clearAllCanvas() { activeContexts.forEach(ctx => ctx.clearRect(0, 0, 600, 600)); }
+
+        function prevWord() {
+            currentIndex = (currentIndex - 1 + vocabList.length) % vocabList.length;
+            updateDisplay();
         }
 
         function nextWord() {
@@ -350,7 +329,6 @@
             updateDisplay();
         }
 
-        // --- 產生連結邏輯 ---
         function copyUrlToClipboard(url) {
             navigator.clipboard.writeText(url).then(() => {
                 alert(`✅ 專屬連結已複製！\n\n此連結學生點開後，會自動隱藏設定區，僅提供大寫字格！\n\n${url}`);
